@@ -1,21 +1,11 @@
 const inside = require('point-in-polygon');
-const deepcopy = require("deep-copy");
-
-function getYMax(data) {
-    let v = data.textAnnotations[0].boundingPoly.vertices;
-    let yArray = [];
-    for(let i=0; i <4; i++){
-        yArray.push(v[i]['y']);
-    }
-    return Math.max.apply(null, yArray);
-}
 
 function invertAxis(data, yMax) {
     data = fillMissingValues(data);
-    for(let i=1; i < data.textAnnotations.length; i++ ){
+    for (let i = 1; i < data.textAnnotations.length; i++) {
         let v = data.textAnnotations[i].boundingPoly.vertices;
         let yArray = [];
-        for(let j=0; j <4; j++){
+        for (let j = 0; j < 4; j++) {
             v[j]['y'] = (yMax - v[j]['y']);
         }
     }
@@ -23,12 +13,12 @@ function invertAxis(data, yMax) {
 }
 
 function fillMissingValues(data) {
-    for(let i=1; i < data.textAnnotations.length; i++ ){
+    for (let i = 1; i < data.textAnnotations.length; i++) {
         let v = data.textAnnotations[i].boundingPoly.vertices;
-        if(v['x'] == undefined){
+        if (v['x'] == undefined) {
             v['x'] = 0;
         }
-        if(v['y'] == undefined){
+        if (v['y'] == undefined) {
             v['y'] = 0;
         }
     }
@@ -36,29 +26,20 @@ function fillMissingValues(data) {
 }
 
 function getBoundingPolygon(mergedArray) {
-
-    for(let i=0; i< mergedArray.length; i++) {
-        let arr = [];
+    yMax = 100000
+    for (let i = 0; i < mergedArray.length; i++) {
+        let v = [];
 
         // calculate line height
-        let h1 = mergedArray[i].boundingPoly.vertices[0].y - mergedArray[i].boundingPoly.vertices[3].y;
-        let h2 = mergedArray[i].boundingPoly.vertices[1].y - mergedArray[i].boundingPoly.vertices[2].y;
-        let h = h1;
-        if(h2> h1) {
-            h = h2
-        }
-        let avgHeight = h * 0.6;
+        let h = mergedArray[i].boundingPoly.vertices[2].x - mergedArray[i].boundingPoly.vertices[0].x;
+        let avgHeight = h * 0.5;
 
-        arr.push(mergedArray[i].boundingPoly.vertices[1]);
-        arr.push(mergedArray[i].boundingPoly.vertices[0]);
-        let line1 = getRectangle(deepcopy(arr), true, avgHeight, true);
+        v.push(mergedArray[i].boundingPoly.vertices[0]);
+        v.push(mergedArray[i].boundingPoly.vertices[1]);
+        v.push(mergedArray[i].boundingPoly.vertices[2]);
+        v.push(mergedArray[i].boundingPoly.vertices[3]);
 
-        arr = [];
-        arr.push(mergedArray[i].boundingPoly.vertices[2]);
-        arr.push(mergedArray[i].boundingPoly.vertices[3]);
-        let line2 = getRectangle(deepcopy(arr), true, avgHeight, false);
-
-        mergedArray[i]['bigbb'] = createRectCoordinates(line1, line2);
+        mergedArray[i]['bigbb'] = [[v[0].x - avgHeight, v[0].y], [v[0].x - avgHeight, yMax], [v[3].x + avgHeight, yMax], [v[3].x + avgHeight, v[0].y]]
         mergedArray[i]['lineNum'] = i;
         mergedArray[i]['match'] = [];
         mergedArray[i]['matched'] = false;
@@ -69,24 +50,26 @@ function getBoundingPolygon(mergedArray) {
 
 function combineBoundingPolygon(mergedArray) {
     // select one word from the array
-    for(let i=0; i< mergedArray.length; i++) {
-
+    for (let i = 0; i < mergedArray.length; i++) {
         let bigBB = mergedArray[i]['bigbb'];
-
         // iterate through all the array to find the match
-        for(let k=i; k< mergedArray.length; k++) {
+        for (let k = 0; k < mergedArray.length; k++) {
             // Do not compare with the own bounding box and which was not matched with a line
-            if(k !== i && mergedArray[k]['matched'] === false) {
+            if (k !== i && mergedArray[k]['matched'] === false) {
                 let insideCount = 0;
-                for(let j=0; j < 4; j++) {
+                for (let j = 0; j < 4; j++) {
                     let coordinate = mergedArray[k].boundingPoly.vertices[j];
-                    if(inside([coordinate.x, coordinate.y], bigBB)){
+                    if (inside([coordinate.x, coordinate.y], bigBB)) {
                         insideCount += 1;
                     }
                 }
+                if (mergedArray[i].description == 'Calories' && mergedArray[k].description == '170') {
+                    //  console.log(bigBB)
+                    // console.log(mergedArray[k].boundingPoly)
+                }
                 // all four point were inside the big bb
-                if(insideCount === 4) {
-                    let match = {matchCount: insideCount, matchLineNum: k};
+                if (insideCount === 4) {
+                    let match = { matchCount: insideCount, matchLineNum: k };
                     mergedArray[i]['match'].push(match);
                     mergedArray[k]['matched'] = true;
                 }
@@ -96,49 +79,7 @@ function combineBoundingPolygon(mergedArray) {
     }
 }
 
-function getRectangle(v, isRoundValues, avgHeight, isAdd) {
-    if(isAdd){
-        v[1].y = v[1].y + avgHeight;
-        v[0].y = v[0].y + avgHeight;
-    }else {
-        v[1].y = v[1].y - avgHeight;
-        v[0].y = v[0].y - avgHeight;
-    }
-
-    let yDiff = (v[1].y - v[0].y);
-    let xDiff = (v[1].x - v[0].x);
-
-    let gradient = yDiff / xDiff;
-
-    let xThreshMin = 1;
-    let xThreshMax = 2000;
-
-    let yMin;
-    let yMax;
-    if(gradient === 0) {
-        // extend the line
-        yMin = v[0].y;
-        yMax = v[0].y;
-    }else{
-        yMin = (v[0].y) - (gradient * (v[0].x - xThreshMin));
-        yMax = (v[0].y) + (gradient * (xThreshMax - v[0].x));
-    }
-    if(isRoundValues) {
-        yMin = Math.round(yMin);
-        yMax = Math.round(yMax);
-    }
-    return {xMin : xThreshMin, xMax : xThreshMax, yMin: yMin, yMax: yMax};
-}
-
-function createRectCoordinates(line1, line2) {
-    return [[line1.xMin, line1.yMin], [line1.xMax, line1.yMax], [line2.xMax, line2.yMax],[line2.xMin, line2.yMin]];
-}
-
 var exports = module.exports = {};
-
-exports.getYMax = function (data) {
-    return getYMax(data);
-};
 
 exports.invertAxis = function (data, yMax) {
     return invertAxis(data, yMax);

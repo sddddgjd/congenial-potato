@@ -543,6 +543,10 @@
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
 
+"@quentinroy/polygon-centroid@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@quentinroy/polygon-centroid/-/polygon-centroid-1.0.1.tgz#436a61e2caa413b3306947985841132aabce0327"
+
 "@types/caseless@*":
   version "0.12.1"
   resolved "https://registry.yarnpkg.com/@types/caseless/-/caseless-0.12.1.tgz#9794c69c8385d0192acc471a540d1f8e0d16218a"
@@ -4759,6 +4763,10 @@ pn@^1.1.0:
 point-in-polygon@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/point-in-polygon/-/point-in-polygon-1.0.1.tgz#d59b64e8fee41c49458aac82b56718c5957b2af7"
+
+polygon-centroid@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/polygon-centroid/-/polygon-centroid-1.1.0.tgz#f6e2551595d8cd0dea72709db1712ae1e7a230da"
 
 posix-character-classes@^0.1.0:
   version "0.1.1"
